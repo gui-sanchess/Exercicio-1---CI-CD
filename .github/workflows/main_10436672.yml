@@ -4,36 +4,36 @@
 
 name: Build and deploy Python app to Azure Web App - 10436672
 
-on:
-  push:
-    branches:
-      - main
+on: # define o evento 
+  push: # ação para onde vai ser executada 
+    branches: # região 
+      - main # nome da região
   workflow_dispatch:
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+jobs: # conjunto de tarefas
+  build: # 
+    runs-on: ubuntu-latest # inicializa o ubuntu
     permissions:
       contents: read #This is required for actions/checkout
 
-    steps:
+    steps: # 
       - uses: actions/checkout@v4
 
-      - name: Set up Python version
+      - name: Set up Python version # nome do fluxo de trabalho
         uses: actions/setup-python@v5
         with:
-          python-version: '3.14'
+          python-version: '3.14' # define a versão do python
 
       # 🛠️ Local Build Section (Optional)
       # The following section in your workflow is designed to catch build issues early on the client side, before deployment. This can be helpful for debugging and validation. However, if this step significantly increases deployment time and early detection is not critical for your workflow, you may remove this section to streamline the deployment process.
-      - name: Create and Start virtual environment and Install dependencies
+      - name: Create and Start virtual environment and Install dependencies # nome do fluxo de trabalho
         run: |
           python -m venv antenv
           source antenv/bin/activate
-          pip install -r requirements.txt
+          pip install -r requirements.txt # instalação de requerimentos
                 
       # By default, when you enable GitHub CI/CD integration through the Azure portal, the platform automatically sets the SCM_DO_BUILD_DURING_DEPLOYMENT application setting to true. This triggers the use of Oryx, a build engine that handles application compilation and dependency installation (e.g., pip install) directly on the platform during deployment. Hence, we exclude the antenv virtual environment directory from the deployment artifact to reduce the payload size. 
-      - name: Upload artifact for deployment jobs
+      - name: Upload artifact for deployment jobs # nome do fluxo de trabalho
         uses: actions/upload-artifact@v4
         with:
           name: python-app
@@ -55,19 +55,19 @@ jobs:
       contents: read #This is required for actions/checkout
 
     steps:
-      - name: Download artifact from build job
+      - name: Download artifact from build job # nome do fluxo de trabalho
         uses: actions/download-artifact@v4
         with:
-          name: python-app
+          name: python-app # nome do fluxo de trabalho
       
-      - name: Login to Azure
-        uses: azure/login@v2
+      - name: Login to Azure # nome do fluxo de trabalho
+        uses: azure/login@v2 
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_DC1ED2C377684159AB7E833409D6A5EF }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_3E2CE8ED2E1B4814A7C9AE5CD668849C }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_3F5F1AADE4A747E69B60E1BBCFB0DA3C }}
 
-      - name: 'Deploy to Azure Web App'
+      - name: 'Deploy to Azure Web App' # nome do fluxo de trabalho
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
