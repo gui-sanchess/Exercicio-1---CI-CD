@@ -2,75 +2,72 @@
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 # More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
 
-name: Build and deploy Python app to Azure Web App - 10436672
+name: Build and deploy Python app to Azure Web App - 10436672 # Define o nome de exibição deste fluxo de trabalho (workflow) no painel do GitHub Actions.
 
-on: # define o evento 
-  push: # ação para onde vai ser executada 
-    branches: # região 
-      - main # nome da região
-  workflow_dispatch:
+on: # Inicia o bloco que define quais eventos (gatilhos) vão acionar a execução deste fluxo de trabalho.
+  push: # Define que o fluxo será acionado por um evento de envio de código para o repositório (push).
+    branches: # Inicia a lista de ramificações (branches) do repositório que serão monitoradas pelo evento de push.
+      - main # Especifica que apenas envios de código para a ramificação principal (chamada 'main') acionarão o fluxo.
+  workflow_dispatch: # Permite que este fluxo de trabalho seja iniciado manualmente pelo usuário através de um botão no GitHub.
 
-jobs: # conjunto de tarefas
-  build: # 
-    runs-on: ubuntu-latest # inicializa o ubuntu
-    permissions:
-      contents: read #This is required for actions/checkout
+jobs: # Inicia a definição da lista de trabalhos (jobs) que compõem a execução deste fluxo de trabalho.
+  build: # Define o identificador do primeiro trabalho, nomeado aqui como 'build' (fase de construção/preparação).
+    runs-on: ubuntu-latest # Especifica que este trabalho 'build' será executado em uma máquina virtual com a versão mais recente do Ubuntu Linux.
+    permissions: # Inicia o bloco de configuração de permissões de segurança para o token de execução (GITHUB_TOKEN) neste trabalho.
+      contents: read # Concede ao token apenas a permissão de leitura dos arquivos do repositório (necessário para baixar o código).
 
-    steps: # 
-      - uses: actions/checkout@v4
+    steps: # Inicia a lista sequencial de passos (steps) que serão executados um após o outro dentro deste trabalho 'build'.
+      - uses: actions/checkout@v4 # Passo que executa a action oficial do GitHub para baixar os arquivos do repositório para a máquina virtual.
 
-      - name: Set up Python version # nome do fluxo de trabalho
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.14' # define a versão do python
+      - name: Set up Python version # Define o título descritivo do passo que irá preparar o ambiente Python.
+        uses: actions/setup-python@v5 # Executa a action oficial para baixar, instalar e configurar o interpretador Python na máquina virtual.
+        with: # Inicia o bloco de parâmetros (variáveis de entrada) fornecidos para configurar a action 'setup-python'.
+          python-version: '3.14' # Define explicitamente que a versão '3.14' do Python deve ser a instalada e configurada para uso.
 
       # 🛠️ Local Build Section (Optional)
-      # The following section in your workflow is designed to catch build issues early on the client side, before deployment. This can be helpful for debugging and validation. However, if this step significantly increases deployment time and early detection is not critical for your workflow, you may remove this section to streamline the deployment process.
-      - name: Create and Start virtual environment and Install dependencies # nome do fluxo de trabalho
-        run: |
-          python -m venv antenv
-          source antenv/bin/activate
-          pip install -r requirements.txt # instalação de requerimentos
+      # The following section in your workflow is designed to catch build issues early on the client side...
+      - name: Create and Start virtual environment and Install dependencies # Define o título descritivo do passo de instalação de dependências.
+        run: | # O caractere '|' (pipe) inicia um bloco que permite a execução de múltiplos comandos de terminal, um por linha.
+          python -m venv antenv # Comando de terminal que cria um ambiente virtual Python isolado chamado 'antenv'.
+          source antenv/bin/activate # Comando de terminal que ativa o ambiente virtual 'antenv' recém-criado.
+          pip install -r requirements.txt # Comando do gerenciador 'pip' que lê o arquivo 'requirements.txt' e instala as bibliotecas listadas.
                 
-      # By default, when you enable GitHub CI/CD integration through the Azure portal, the platform automatically sets the SCM_DO_BUILD_DURING_DEPLOYMENT application setting to true. This triggers the use of Oryx, a build engine that handles application compilation and dependency installation (e.g., pip install) directly on the platform during deployment. Hence, we exclude the antenv virtual environment directory from the deployment artifact to reduce the payload size. 
-      - name: Upload artifact for deployment jobs # nome do fluxo de trabalho
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-app
-          path: |
-            .
-            !antenv/
+      # By default, when you enable GitHub CI/CD integration through the Azure portal...
+      - name: Upload artifact for deployment jobs # Define o título do passo que irá agrupar e enviar os arquivos para a próxima etapa.
+        uses: actions/upload-artifact@v4 # Executa a action oficial do GitHub responsável por salvar arquivos (artefatos) para uso posterior.
+        with: # Inicia o bloco de parâmetros fornecidos para configurar a action 'upload-artifact'.
+          name: python-app # Define o nome do pacote (artefato) que está sendo gerado como 'python-app'.
+          path: | # Inicia a lista que define quais caminhos de pastas ou arquivos entrarão (ou não) neste pacote.
+            . # O ponto '.' instrui a action a incluir todos os arquivos e diretórios presentes na raiz do projeto.
+            !antenv/ # O '!antenv/' instrui a action a excluir (ignorar) a pasta do ambiente virtual, economizando espaço de armazenamento e tempo de upload.
 
       # 🚫 Opting Out of Oryx Build
-      # If you prefer to disable the Oryx build process during deployment, follow these steps:
-      # 1. Remove the SCM_DO_BUILD_DURING_DEPLOYMENT app setting from your Azure App Service Environment variables.
-      # 2. Refer to sample workflows for alternative deployment strategies: https://github.com/Azure/actions-workflow-samples/tree/master/AppService
+      # If you prefer to disable the Oryx build process during deployment, follow these steps...
       
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
+  deploy: # Define o identificador do segundo trabalho, nomeado aqui como 'deploy' (fase de implantação no servidor).
+    runs-on: ubuntu-latest # Especifica que este trabalho 'deploy' também será executado em uma máquina virtual Ubuntu Linux atualizada.
+    needs: build # Estabelece uma regra de dependência: o trabalho 'deploy' só começa se o trabalho 'build' for concluído com sucesso.
+    permissions: # Inicia o bloco de configuração de permissões de segurança específicas para o trabalho de 'deploy'.
+      id-token: write # Concede permissão de escrita para gerar um token de identidade (OIDC), usado para login sem senha no Azure.
+      contents: read # Concede permissão de leitura aos arquivos para permitir o download e manipulação do artefato gerado anteriormente.
 
-    steps:
-      - name: Download artifact from build job # nome do fluxo de trabalho
-        uses: actions/download-artifact@v4
-        with:
-          name: python-app # nome do fluxo de trabalho
+    steps: # Inicia a lista sequencial de passos (steps) que serão executados dentro deste trabalho 'deploy'.
+      - name: Download artifact from build job # Define o título do passo encarregado de resgatar o pacote salvo na fase de 'build'.
+        uses: actions/download-artifact@v4 # Executa a action oficial para baixar o artefato disponibilizado pelo trabalho anterior.
+        with: # Inicia o bloco de parâmetros para a action 'download-artifact'.
+          name: python-app # Especifica que o pacote a ser baixado é exatamente o pacote nomeado como 'python-app'.
       
-      - name: Login to Azure # nome do fluxo de trabalho
-        uses: azure/login@v2 
-        with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_DC1ED2C377684159AB7E833409D6A5EF }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_3E2CE8ED2E1B4814A7C9AE5CD668849C }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_3F5F1AADE4A747E69B60E1BBCFB0DA3C }}
+      - name: Login to Azure # Define o título do passo que fará a autenticação da máquina virtual com a plataforma em nuvem Microsoft Azure.
+        uses: azure/login@v2 # Executa a action oficial da Microsoft (Azure) para realizar o processo de login seguro.
+        with: # Inicia o bloco de credenciais necessárias para a action 'azure/login' funcionar.
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_DC1ED2C377684159AB7E833409D6A5EF }} # Injeta a credencial 'Client ID' lendo-a com segurança da área de Segredos do GitHub.
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_3E2CE8ED2E1B4814A7C9AE5CD668849C }} # Injeta a credencial 'Tenant ID' lendo-a com segurança da área de Segredos do GitHub.
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_3F5F1AADE4A747E69B60E1BBCFB0DA3C }} # Injeta a credencial 'Subscription ID' lendo-a com segurança da área de Segredos do GitHub.
 
-      - name: 'Deploy to Azure Web App' # nome do fluxo de trabalho
-        uses: azure/webapps-deploy@v3
-        id: deploy-to-webapp
-        with:
-          app-name: '10436672'
-          slot-name: 'Production'
-          
+      - name: 'Deploy to Azure Web App' # Define o título do último passo, que efetivamente empurra o código da aplicação para o servidor.
+        uses: azure/webapps-deploy@v3 # Executa a action oficial do Azure responsável por implantar (publicar) os arquivos no Azure App Service.
+        id: deploy-to-webapp # Cria uma identificação interna (ID) para este passo específico, permitindo referência futura caso necessário.
+        with: # Inicia o bloco final de configurações que dizem ao Azure onde colocar os arquivos da aplicação.
+          app-name: '10436672' # Informa o nome exato do recurso Web App que foi criado na plataforma Azure para receber este código.
+          slot-name: 'Production' # Informa que a implantação deve ser enviada para o ambiente principal (slot de Produção), ficando imediatamente online.
